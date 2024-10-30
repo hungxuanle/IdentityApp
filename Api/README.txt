@@ -1,4 +1,11 @@
 ﻿
+
+
+https://www.youtube.com/watch?v=zNj4Nc_2dBs
+
+https://github.com/shayanvaghei/IdentityApp
+
+
 ASP.NET Core Identity with .NET (Web API) and Angular
 
 Learn how to create a web application using .NET 7 Web API and Angular 15 to implement full fledge of ASP.NET Core Identity
@@ -36,3 +43,44 @@ Technologies and Applications used in this course:
 - SQL Server and  (MSSM)
 - Postman
 - Azure Portal
+
+=================================================================================
+Github
+-------
+https://github.com/hungxuanle/IdentityApp
+
+https://github.com/hungxuanle/IdentityApp.git
+
+…or create a new repository on the command line
+-----------------------------------------------
+echo "# IdentityApp" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/hungxuanle/IdentityApp.git
+git push -u origin main
+
+…or push an existing repository from the command line
+-----------------------------------------------------
+git remote add origin https://github.com/hungxuanle/IdentityApp.git
+git branch -M main
+git push -u origin main
+
+=========================================================
+
+{
+  "nameid": "20d0f1e3-5780-4bd2-bfa0-c737e6bfb92b",
+  "email": "admin@example.com",
+  "given_name": "admin",
+  "family_name": "jackson",
+  "role": [
+    "Player",
+    "Admin",
+    "Manager"
+  ],
+  "nbf": 1730224506,
+  "exp": 1730231706,
+  "iat": 1730224506,
+  "iss": "http://localhost:5086"
+}
