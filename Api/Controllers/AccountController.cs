@@ -50,6 +50,19 @@ namespace Api.Controllers
         }
 
         [Authorize]
+        [HttpGet("refresh-user-token")]
+        public async Task<ActionResult<UserDto>> RefreshUserToken()
+        {
+            // var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            //var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            var user = await _userManager.FindByEmailAsync(User.FindFirst(ClaimTypes.Email)?.Value);
+            //var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            //var user = await _userManager.FindByIdAsync("f4fd7d1e-89d1-4427-aee8-09269ad6e874");
+            //var user = await _userManager.FindByNameAsync(User.FindFirst(ClaimTypes.Email)?.Value);
+            return await CreateApplicationUserDto(user);
+        }
+
+        [Authorize]
         [HttpPost("refresh-token")]
         public async Task<ActionResult<UserDto>> RefereshToken()
         {
