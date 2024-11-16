@@ -2,6 +2,7 @@
 using Api.DTOs.Account;
 using Api.Models;
 using Api.Services;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -98,25 +99,67 @@ namespace Api.Controllers
 
             if (!result.Succeeded)
             {
-                //// User has input an invalid password
-                //if (!user.UserName.Equals(SD.AdminUserName))
-                //{
-                //    // Increamenting AccessFailedCount of the AspNetUser by 1
-                //    await _userManager.AccessFailedAsync(user);
-                //}
+                // User has input an invalid password
+                if (!user.UserName.Equals(SD.AdminUserName))
+                {
+                    // Increamenting AccessFailedCount of the AspNetUser by 1
+                    await _userManager.AccessFailedAsync(user);
+                }
 
-                //if (user.AccessFailedCount >= SD.MaximumLoginAttempts)
-                //{
-                //    // Lock the user for one day
-                //    await _userManager.SetLockoutEndDateAsync(user, DateTime.UtcNow.AddDays(1));
-                //    return Unauthorized(string.Format("Your account has been locked. You should wait until {0} (UTC time) to be able to login", user.LockoutEnd));
-                //}
+                if (user.AccessFailedCount >= SD.MaximumLoginAttempts)
+                {
+                    // Lock the user for one day
+                    await _userManager.SetLockoutEndDateAsync(user, DateTime.UtcNow.AddDays(1));
+                    return Unauthorized(string.Format("Your account has been locked. You should wait until {0} (UTC time) to be able to login", user.LockoutEnd));
+                }
 
                 return Unauthorized("Invalid username or password");
             }
 
-            //await _userManager.ResetAccessFailedCountAsync(user);
-            //await _userManager.SetLockoutEndDateAsync(user, null);
+            await _userManager.ResetAccessFailedCountAsync(user);
+            await _userManager.SetLockoutEndDateAsync(user, null);
+
+            return await CreateApplicationUserDto(user);
+        }
+
+        [HttpPost("login-with-third-party")]
+        public async Task<ActionResult<UserDto>> LoginWithThirdParty(LoginWithExternalDto model)
+        {
+            if (model.Provider.Equals(SD.Facebook))
+            {
+                try
+                {
+                    if (!FacebookValidatedAsync(model.AccessToken, model.UserId).GetAwaiter().GetResult())
+                    {
+                        return Unauthorized("Unable to login with facebook");
+                    }
+                }
+                catch (Exception)
+                {
+                    return Unauthorized("Unable to login with facebook");
+                }
+            }
+            else if (model.Provider.Equals(SD.Google))
+            {
+                try
+                {
+                    if (!GoogleValidatedAsync(model.AccessToken, model.UserId).GetAwaiter().GetResult())
+                    {
+                        return Unauthorized("Unable to login with google");
+                    }
+                }
+                catch (Exception)
+                {
+                    return Unauthorized("Unable to login with google");
+                }
+            }
+            else
+            {
+                return BadRequest("Invalid provider");
+            }
+
+            var user = await _userManager.Users.FirstOrDefaultAsync(x => x.UserName == model.UserId && x.Provider == model.Provider);
+            if (user == null) return Unauthorized("Unable to find your account");
 
             return await CreateApplicationUserDto(user);
         }
@@ -162,6 +205,60 @@ namespace Api.Controllers
                 return BadRequest("Failed to send email. Please contact admin");
             }
 
+        }
+
+        [HttpPost("register-with-third-party")]
+        public async Task<ActionResult<UserDto>> RegisterWithThirdParty(RegisterWithExternal model)
+        {
+            if (model.Provider.Equals(SD.Facebook))
+            {
+                try
+                {
+                    if (!FacebookValidatedAsync(model.AccessToken, model.UserId).GetAwaiter().GetResult())
+                    {
+                        return Unauthorized("Unable to register with facebook");
+                    }
+                }
+                catch (Exception)
+                {
+                    return Unauthorized("Unable to register with facebook");
+                }
+            }
+            else if (model.Provider.Equals(SD.Google))
+            {
+                try
+                {
+                    if (!GoogleValidatedAsync(model.AccessToken, model.UserId).GetAwaiter().GetResult())
+                    {
+                        return Unauthorized("Unable to register with google");
+                    }
+                }
+                catch (Exception)
+                {
+                    return Unauthorized("Unable to register with google");
+                }
+            }
+            else
+            {
+                return BadRequest("Invalid provider");
+            }
+
+            var user = await _userManager.FindByNameAsync(model.UserId);
+            if (user != null) return BadRequest(string.Format("You have an account already. Please login with your {0}", model.Provider));
+
+            var userToAdd = new User
+            {
+                FirstName = model.FirstName.ToLower(),
+                LastName = model.LastName.ToLower(),
+                UserName = model.UserId,
+                Provider = model.Provider,
+            };
+
+            var result = await _userManager.CreateAsync(userToAdd);
+            if (!result.Succeeded) return BadRequest(result.Errors);
+            await _userManager.AddToRoleAsync(userToAdd, SD.PlayerRole);
+
+            return await CreateApplicationUserDto(userToAdd);
         }
 
         [HttpPut("confirm-email")]
@@ -318,7 +415,7 @@ namespace Api.Controllers
 
             return await _emailService.SendEmailAsync(emailSend);
         }
-        /*
+        
         private async Task<bool> FacebookValidatedAsync(string accessToken, string userId)
         {
             var facebookKeys = _config["Facebook:AppId"] + "|" + _config["Facebook:AppSecret"];
@@ -331,7 +428,7 @@ namespace Api.Controllers
 
             return true;
         }
-        
+      
         private async Task<bool> GoogleValidatedAsync(string accessToken, string userId)
         {
             var payload = await GoogleJsonWebSignature.ValidateAsync(accessToken);
@@ -393,7 +490,6 @@ namespace Api.Controllers
 
             Response.Cookies.Append("identityAppRefreshToken", refreshToken.Token, cookieOptions);
         }
-        */
 
         private async Task<bool> IsValidRefreshTokenAsync(string userId, string token)
         {
