@@ -1,3 +1,4 @@
+using Api;
 using Api.Data;
 using Api.Models;
 using Api.Services;
@@ -11,8 +12,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.VisualBasic;
 using System;
+using System.Data;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -96,6 +100,29 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 
         return new BadRequestObjectResult(toReturn);
     };
+});
+
+// In ASP.NET Core identity, roles, claims, and policies are used to control access to actions and resources within an application:
+/*
+    Roles: Predefined sets of permissions. Roles are claims, but not all claims are roles. 
+    Claims: Information about an individual user. 
+    Policies: Rules that use roles, claims, or both to control access. Policies dynamically determine access privileges during authorization.
+*/
+builder.Services.AddAuthorization(opt =>
+{
+    opt.AddPolicy("AdminPolicy", policy => policy.RequireRole("Admin"));
+    opt.AddPolicy("ManagerPolicy", policy => policy.RequireRole("Manager"));
+    opt.AddPolicy("PlayerPolicy", policy => policy.RequireRole("Player"));
+
+    opt.AddPolicy("AdminOrManagerPolicy", policy => policy.RequireRole("Admin", "Manager"));
+    opt.AddPolicy("AdminAndManagerPolicy", policy => policy.RequireRole("Admin").RequireRole("Manager"));
+    opt.AddPolicy("AllRolePolicy", policy => policy.RequireRole("Admin", "Manager", "Player"));
+
+    opt.AddPolicy("AdminEmailPolicy", policy => policy.RequireClaim(ClaimTypes.Email, "admin@example.com"));
+    opt.AddPolicy("MillerSurnamePolicy", policy => policy.RequireClaim(ClaimTypes.Surname, "miller"));
+    opt.AddPolicy("ManagerEmailAndWilsonSurnamePolicy", policy => policy.RequireClaim(ClaimTypes.Surname, "wilson")
+        .RequireClaim(ClaimTypes.Email, "manager@example.com"));
+    opt.AddPolicy("VIPPolicy", policy => policy.RequireAssertion(context => SD.VIPPolicy(context)));
 });
 
 var app = builder.Build();

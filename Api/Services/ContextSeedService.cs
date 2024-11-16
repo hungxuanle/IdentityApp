@@ -52,7 +52,7 @@ namespace Api.Services
                 await _userManager.CreateAsync(admin, "123456");
                 await _userManager.AddToRolesAsync(admin, new[] { SD.AdminRole, SD.ManagerRole, SD.PlayerRole });
                 await _userManager.AddClaimsAsync(admin, new Claim[]
-                {
+                {   // these claims should match with any claims in JWTService.CreateJWT
                     new Claim(ClaimTypes.Email, admin.Email),
                     new Claim(ClaimTypes.Surname, admin.LastName)
                 });
