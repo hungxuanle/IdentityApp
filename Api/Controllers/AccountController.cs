@@ -60,6 +60,24 @@ namespace Api.Controllers
             //var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             //var user = await _userManager.FindByIdAsync("f4fd7d1e-89d1-4427-aee8-09269ad6e874");
             //var user = await _userManager.FindByNameAsync(User.FindFirst(ClaimTypes.Email)?.Value);
+            if(await _userManager.IsLockedOutAsync(user))
+            {
+                return Unauthorized("You have been locked out!");
+
+            }
+            return await CreateApplicationUserDto(user);
+        }
+
+        [Authorize]
+        [HttpGet("refresh-page")]
+        public async Task<ActionResult<UserDto>> RefreshPage()
+        {
+            var user = await _userManager.FindByNameAsync(User.FindFirst(ClaimTypes.Email)?.Value);
+
+            if (await _userManager.IsLockedOutAsync(user))
+            {
+                return Unauthorized("You have been locked out");
+            }
             return await CreateApplicationUserDto(user);
         }
 
